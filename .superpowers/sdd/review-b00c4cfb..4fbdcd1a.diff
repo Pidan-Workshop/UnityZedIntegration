@@ -1,0 +1,10 @@
+# Review package: b00c4cf..4fbdcd1
+
+## Commits
+4fbdcd1a feat: add ZedEditorPrefs for EditorPrefs persistence
+
+## Files changed
+ .../Editor/ZedEditorPrefs.cs                       | 32 ++++++++++++++++++++++  1 file changed, 32 insertions(+)
+
+## Diff
+diff --git a/Packages/com.unity.ide.zededitor/Editor/ZedEditorPrefs.cs b/Packages/com.unity.ide.zededitor/Editor/ZedEditorPrefs.cs new file mode 100644 index 00000000..fbe9c860 --- /dev/null +++ b/Packages/com.unity.ide.zededitor/Editor/ZedEditorPrefs.cs @@ -0,0 +1,32 @@ +using UnityEditor; + +namespace Unity.Zed.Editor +{ +    internal static class ZedEditorPrefs +    { +        private const string Prefix = "ZedEditor_"; + +        public const string ExecutablePathKey = Prefix + "ExecutablePath"; +        public const string AdditionalArgsKey = Prefix + "AdditionalArgs"; + +        public static string GetExecutablePath() +        { +            return EditorPrefs.GetString(ExecutablePathKey, ""); +        } + +        public static void SetExecutablePath(string path) +        { +            EditorPrefs.SetString(ExecutablePathKey, path ?? ""); +        } + +        public static string GetAdditionalArgs() +        { +            return EditorPrefs.GetString(AdditionalArgsKey, ""); +        } + +        public static void SetAdditionalArgs(string args) +        { +            EditorPrefs.SetString(AdditionalArgsKey, args ?? ""); +        } +    } +}

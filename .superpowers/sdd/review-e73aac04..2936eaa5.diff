@@ -1,0 +1,10 @@
+# Review package: e73aac0..2936eaa
+
+## Commits
+2936eaa5 feat: add ZedSolutionGeneratorBridge for .sln/.csproj generation
+
+## Files changed
+ .../Editor/ZedSolutionGeneratorBridge.cs           | 36 ++++++++++++++++++++++  1 file changed, 36 insertions(+)
+
+## Diff
+diff --git a/Packages/com.unity.ide.zededitor/Editor/ZedSolutionGeneratorBridge.cs b/Packages/com.unity.ide.zededitor/Editor/ZedSolutionGeneratorBridge.cs new file mode 100644 index 00000000..99bd64d0 --- /dev/null +++ b/Packages/com.unity.ide.zededitor/Editor/ZedSolutionGeneratorBridge.cs @@ -0,0 +1,36 @@ +using System.IO; +using System.Linq; +using Microsoft.Unity.VisualStudio.Editor; +using UnityEngine; + +namespace Unity.Zed.Editor +{ +    internal static class ZedSolutionGeneratorBridge +    { +        private static ProjectGeneration CreateGenerator() +        { +            return new ProjectGeneration(Directory.GetParent(Application.dataPath).FullName); +        } + +        public static void SyncAll() +        { +            CreateGenerator().Sync(); +        } + +        public static void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles) +        { +            var affected = addedFiles +                .Union(deletedFiles) +                .Union(movedFiles) +                .Union(movedFromFiles); +            CreateGenerator().SyncIfNeeded(affected, importedFiles); +        } + +        public static string GetOrGenerateSolutionFile() +        { +            var generator = CreateGenerator(); +            generator.Sync(); +            return generator.SolutionFile(); +        } +    } +}
