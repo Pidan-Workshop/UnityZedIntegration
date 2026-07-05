@@ -14,20 +14,18 @@ namespace Unity.Zed.Editor
             var zedPath = ZedDiscovery.FindZed();
             if (string.IsNullOrEmpty(zedPath) || !File.Exists(zedPath))
             {
-                Debug.LogError("Zed executable not found. Please configure the path in Edit > Preferences > External Tools > Zed Editor.");
+                Debug.LogError("Zed executable not found. Please configure the path in Edit > Project Settings > Zed Editor.");
                 EditorUtility.DisplayDialog(
                     "Zed Not Found",
-                    "Zed executable was not found. Please go to Edit > Preferences > External Tools > Zed Editor and specify the Zed executable path.",
+                    "Zed executable was not found. Please go to Edit > Project Settings > Zed Editor and specify the Zed executable path.",
                     "OK");
                 return false;
             }
 
             try
             {
-                var additionalArgs = ZedEditorPrefs.GetAdditionalArgs();
                 var argsBuilder = new StringBuilder();
 
-                AppendRawArgument(argsBuilder, additionalArgs);
                 AppendArgument(argsBuilder, projectDirectory);
                 AppendArgument(argsBuilder, BuildFileArgument(projectDirectory, filePath, line, column));
 
@@ -39,7 +37,7 @@ namespace Unity.Zed.Editor
                 Debug.LogError($"Failed to launch Zed: {ex.Message}");
                 EditorUtility.DisplayDialog(
                     "Failed to Launch Zed",
-                    $"Failed to start Zed at path '{zedPath}'. Please check the path in Edit > Preferences > External Tools > Zed Editor.\n\nError: {ex.Message}",
+                    $"Failed to start Zed at path '{zedPath}'. Please check the path in Edit > Project Settings > Zed Editor.\n\nError: {ex.Message}",
                     "OK");
                 return false;
             }
@@ -60,17 +58,6 @@ namespace Unity.Zed.Editor
             }
 
             return fileArg;
-        }
-
-        private static void AppendRawArgument(StringBuilder builder, string argument)
-        {
-            if (string.IsNullOrWhiteSpace(argument))
-                return;
-
-            if (builder.Length > 0)
-                builder.Append(' ');
-
-            builder.Append(argument);
         }
 
         private static void AppendArgument(StringBuilder builder, string argument)

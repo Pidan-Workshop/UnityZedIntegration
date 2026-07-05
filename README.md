@@ -2,17 +2,20 @@
 
 Unity editor integration for [Zed](https://zed.dev).
 
-This package registers Zed as an external script editor in Unity, generates C# project files through Unity's Visual Studio Editor package, and opens scripts from Unity with line and column navigation.
+This package registers Zed as an external script editor in Unity, generates C# project files through Unity's Visual Studio Editor package, and opens C# / shader source files from Unity with line and column navigation.
 
 ## Features
 
 - Registers **Zed** in `Edit > Preferences > External Tools > External Script Editor`
 - Opens the current Unity project folder as the Zed workspace
 - Reuses an already-open Zed workspace when Zed can match the project folder
-- Opens scripts at the requested line and column from Unity Console, Project window, and script double-clicks
+- Opens C# and shader source files at the requested line and column from Unity Console, Project window, and double-clicks
+- Reuses Unity's Visual Studio Editor project generator and exposes the same `.csproj` generation toggles
 - Generates and syncs `.sln` / `.csproj` files through `com.unity.ide.visualstudio`
+- Configures which file extensions Unity should route to Zed
+- Can create `.zed/settings.json` and `.gitignore` entries so Zed's Project Panel hides generated Unity folders
 - Auto-detects Zed installations on Windows, macOS, and Linux
-- Provides a Preferences page for manual executable path and additional CLI arguments
+- Provides a Project Settings page for executable path, file routing, and Project Panel setup
 
 ## Requirements
 
@@ -46,7 +49,7 @@ Unity should detect the package automatically after the editor refreshes.
 
 1. Open `Edit > Preferences > External Tools`.
 2. Set **External Script Editor** to **Zed**.
-3. If Zed is not detected automatically, open `Edit > Preferences > External Tools > Zed Editor` and set the executable path manually.
+3. If Zed is not detected automatically, open `Edit > Project Settings > Zed Editor` and set the executable path manually.
 
 On Windows, either of these paths is accepted:
 
@@ -61,25 +64,76 @@ When the app executable is selected, the package resolves it to the CLI executab
 
 Use Unity normally:
 
-- Double-click a C# script in the Project window
+- Double-click a C# or shader source file in the Project window
 - Click a C# stack trace entry in the Console
 - Use `Assets > Open C# Project`
 
-The package launches Zed with the Unity project folder and the selected script path. If the workspace is already open, Zed should focus or reuse that workspace; otherwise, it opens the project folder.
+The package launches Zed with the Unity project folder and the selected source file path. If the workspace is already open, Zed should focus or reuse that workspace; otherwise, it opens the project folder.
 
-## Preferences
+Supported source file extensions are configured in:
+
+```text
+Edit > Project Settings > Zed Editor
+```
+
+Defaults:
+
+```text
+.cs
+.shader
+.compute
+.hlsl
+.cginc
+.glsl
+```
+
+Other Unity assets are ignored so Unity can handle them normally.
+
+## Project Generation
+
+When Zed is selected as the external script editor, Unity's External Tools panel shows the same project generation options used by the Visual Studio Editor package:
+
+- Embedded packages
+- Local packages
+- Registry packages
+- Git packages
+- Built-in packages
+- Local tarball
+- Packages from unknown sources
+- Player projects
+
+The **Regenerate project files** button calls Unity's Visual Studio Editor project generator. Zed does not maintain a separate `.sln` / `.csproj` generator.
+
+## Zed Project Panel
+
+Open:
+
+```text
+Edit > Project Settings > Zed Editor
+```
+
+The Zed Project Panel section can:
+
+- Create `.zed/settings.json` with `project_panel.hide_gitignore` enabled
+- Add common Unity generated folders to `.gitignore`
+- Let you customize the ignore entries before writing them
+
+This uses Zed's current Project Panel behavior: when `project_panel.hide_gitignore` is enabled, files matched by `.gitignore` are hidden from the Project Panel.
+
+## Settings
 
 The package adds a settings page at:
 
 ```text
-Edit > Preferences > External Tools > Zed Editor
+Edit > Project Settings > Zed Editor
 ```
 
 Available options:
 
 - **Zed Executable Path**: manually set the Zed executable if auto-detection fails
 - **Detect Again**: clear the cached executable path and run detection again
-- **Additional Arguments**: prepend custom arguments to the Zed CLI invocation
+- **Open in Zed**: configure source file extensions that Unity should route to Zed
+- **Zed Project Panel**: create `.zed/settings.json` and `.gitignore` entries for hiding generated Unity folders
 
 ## Auto-Detection Paths
 
@@ -122,7 +176,7 @@ Make sure the package is installed under `Packages/com.pidan-workshop.unity-zed`
 
 ### Zed Executable Not Found
 
-Open `Edit > Preferences > External Tools > Zed Editor` and set the executable path manually.
+Open `Edit > Project Settings > Zed Editor` and set the executable path manually.
 
 On Windows, prefer:
 
@@ -147,10 +201,12 @@ Packages/com.pidan-workshop.unity-zed/
   Editor/
     ZedDiscovery.cs
     ZedEditorPrefs.cs
-    ZedPreferences.cs
     ZedProcess.cs
+    ZedProjectSettings.cs
+    ZedProjectSettingsProvider.cs
     ZedScriptEditor.cs
     ZedSolutionGeneratorBridge.cs
+    ZedWorkspaceSettings.cs
   package.json
   README.md
   CHANGELOG.md

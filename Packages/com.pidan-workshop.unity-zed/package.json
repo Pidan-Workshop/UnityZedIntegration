@@ -2,7 +2,7 @@
   "name": "com.pidan-workshop.unity-zed",
   "displayName": "Zed Editor",
   "description": "Code editor integration for supporting Zed as code editor for Unity. Adds support for generating csproj/sln files, auto discovery of installations, and script opening with line/column navigation.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "unity": "2021.2",
   "dependencies": {
     "com.unity.ide.visualstudio": "2.0.0"

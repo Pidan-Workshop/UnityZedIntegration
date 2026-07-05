@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Microsoft.Unity.VisualStudio.Editor;
 using Unity.CodeEditor;
 using UnityEditor;
 using UnityEngine;
@@ -53,19 +54,63 @@ namespace Unity.Zed.Editor
 
             GUILayout.Label($"<size=10><color=grey>{package.displayName} v{package.version} enabled</color></size>", style);
             GUILayout.EndHorizontal();
+
+            DrawProjectGenerationSettings();
         }
 
         public bool OpenProject(string path, int line, int column)
         {
             var projectDirectory = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
-            Debug.Log(projectDirectory);
             if (!string.IsNullOrEmpty(path) && !Path.IsPathRooted(path))
             {
                 path = Path.GetFullPath(Path.Combine(projectDirectory, path));
             }
 
+            if (!ShouldOpenPath(path))
+                return false;
+
             ZedSolutionGeneratorBridge.GetOrGenerateSolutionFile();
             return ZedProcess.Launch(projectDirectory, path, line, column);
+        }
+
+        private static bool ShouldOpenPath(string path)
+        {
+            return ZedProjectSettings.instance.ShouldOpenPath(path);
+        }
+
+        private static void DrawProjectGenerationSettings()
+        {
+            var generator = ZedSolutionGeneratorBridge.CreateGenerator();
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Generate .csproj files for:");
+            EditorGUI.indentLevel++;
+            SettingsButton(generator, ProjectGenerationFlag.Embedded, "Embedded packages", "");
+            SettingsButton(generator, ProjectGenerationFlag.Local, "Local packages", "");
+            SettingsButton(generator, ProjectGenerationFlag.Registry, "Registry packages", "");
+            SettingsButton(generator, ProjectGenerationFlag.Git, "Git packages", "");
+            SettingsButton(generator, ProjectGenerationFlag.BuiltIn, "Built-in packages", "");
+            SettingsButton(generator, ProjectGenerationFlag.LocalTarBall, "Local tarball", "");
+            SettingsButton(generator, ProjectGenerationFlag.Unknown, "Packages from unknown sources", "");
+            SettingsButton(generator, ProjectGenerationFlag.PlayerAssemblies, "Player projects", "For each player project generate an additional csproj with the name 'project-player.csproj'");
+            DrawRegenerateProjectFilesButton(generator);
+            EditorGUI.indentLevel--;
+        }
+
+        private static void SettingsButton(IGenerator generator, ProjectGenerationFlag preference, string guiMessage, string toolTip)
+        {
+            var prevValue = generator.AssemblyNameProvider.ProjectGenerationFlag.HasFlag(preference);
+            var newValue = EditorGUILayout.Toggle(new GUIContent(guiMessage, toolTip), prevValue);
+            if (newValue != prevValue)
+                generator.AssemblyNameProvider.ToggleProjectGeneration(preference);
+        }
+
+        private static void DrawRegenerateProjectFilesButton(IGenerator generator)
+        {
+            var rect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
+            rect.width = 252;
+            if (GUI.Button(rect, "Regenerate project files"))
+                generator.Sync();
         }
 
         public void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)

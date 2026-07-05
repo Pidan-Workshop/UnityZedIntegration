@@ -9,7 +9,7 @@ namespace Unity.Zed.Editor
 {
     internal static class ZedSolutionGeneratorBridge
     {
-        private static IGenerator CreateGenerator()
+        public static IGenerator CreateGenerator()
         {
             var projectDirectory = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
 
