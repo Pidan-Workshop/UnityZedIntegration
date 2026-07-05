@@ -163,8 +163,8 @@
       },
       "url": "https://packages.unity.cn"
     },
-    "com.unity.ide.zededitor": {
-      "version": "file:com.unity.ide.zededitor",
+    "com.pidan-workshop.unity-zed": {
+      "version": "file:com.pidan-workshop.unity-zed",
       "depth": 0,
       "source": "embedded",
       "dependencies": {

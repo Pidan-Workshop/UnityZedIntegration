@@ -37,7 +37,7 @@ https://github.com/<owner>/<repo>.git
 Copy this package into your Unity project:
 
 ```text
-Packages/com.unity.ide.zededitor
+Packages/com.pidan-workshop.unity-zed
 ```
 
 Unity should detect the package automatically after the editor refreshes.
@@ -118,7 +118,7 @@ PATH
 
 ### Zed Does Not Appear In External Script Editor
 
-Make sure the package is installed under `Packages/com.unity.ide.zededitor` and Unity has finished compiling scripts.
+Make sure the package is installed under `Packages/com.pidan-workshop.unity-zed` and Unity has finished compiling scripts.
 
 ### Zed Executable Not Found
 
@@ -143,7 +143,7 @@ Then try opening the script or Console entry again.
 ## Package Layout
 
 ```text
-Packages/com.unity.ide.zededitor/
+Packages/com.pidan-workshop.unity-zed/
   Editor/
     ZedDiscovery.cs
     ZedEditorPrefs.cs
