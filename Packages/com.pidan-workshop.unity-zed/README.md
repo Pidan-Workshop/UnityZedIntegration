@@ -13,9 +13,10 @@ This package registers Zed as an external script editor in Unity, generates C# p
 - Reuses Unity's Visual Studio Editor project generator and exposes the same `.csproj` generation toggles
 - Generates and syncs `.sln` / `.csproj` files through `com.unity.ide.visualstudio`
 - Configures which file extensions Unity should route to Zed
+- Optionally injects project-configured Roslyn analyzer paths into generated `.csproj` files
 - Can create `.zed/settings.json` and `.gitignore` entries so Zed's Project Panel hides generated Unity folders
 - Auto-detects Zed installations on Windows, macOS, and Linux
-- Provides a Project Settings page for executable path, file routing, and Project Panel setup
+- Provides a Project Settings page for executable path, file routing, analyzer paths, and Project Panel setup
 
 ## Requirements
 
@@ -104,6 +105,35 @@ When Zed is selected as the external script editor, Unity's External Tools panel
 
 The **Regenerate project files** button calls Unity's Visual Studio Editor project generator. Zed does not maintain a separate `.sln` / `.csproj` generator.
 
+## Roslyn Analyzers And Source Generators
+
+Some Unity projects rely on Roslyn analyzers or source generators that need explicit `<Analyzer Include="...">` entries in generated `.csproj` files for Zed's C# language server to see generated code.
+
+This package can add those entries during Unity project file generation. The feature is disabled by default and the package does not ship with any analyzer paths configured.
+
+Open:
+
+```text
+Edit > Project Settings > Zed Editor
+```
+
+In **C# Project Analyzers**:
+
+- Enable **Inject Analyzer Paths**
+- Add one analyzer DLL path per line in **Analyzer Paths**
+- Use either project-relative paths, such as `Packages/Example.Package/Analyzers/Example.Generator.dll`, or absolute paths
+- Optionally enable **Inject Unity Source Generators** to add Unity's editor-provided source generator DLLs
+
+After changing these settings, regenerate project files from Unity so the `.csproj` files are rewritten:
+
+```text
+Assets > Open C# Project
+```
+
+or use the **Regenerate project files** button in Unity's External Tools panel.
+
+If a configured analyzer path does not exist, the package skips that entry and logs a warning in the Unity Console.
+
 ## Zed Project Panel
 
 Open:
@@ -133,6 +163,7 @@ Available options:
 - **Zed Executable Path**: manually set the Zed executable if auto-detection fails
 - **Detect Again**: clear the cached executable path and run detection again
 - **Open in Zed**: configure source file extensions that Unity should route to Zed
+- **C# Project Analyzers**: configure analyzer DLL paths to inject into generated `.csproj` files
 - **Zed Project Panel**: create `.zed/settings.json` and `.gitignore` entries for hiding generated Unity folders
 
 ## Auto-Detection Paths
@@ -205,6 +236,7 @@ Packages/com.pidan-workshop.unity-zed/
     ZedProjectSettings.cs
     ZedProjectSettingsProvider.cs
     ZedScriptEditor.cs
+    ZedAnalyzerProjectPostprocessor.cs
     ZedSolutionGeneratorBridge.cs
     ZedWorkspaceSettings.cs
   package.json
