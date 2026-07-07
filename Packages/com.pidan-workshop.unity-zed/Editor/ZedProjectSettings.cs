@@ -36,6 +36,24 @@ namespace Unity.Zed.Editor
         [SerializeField]
         private string m_GitignoreEntries = DefaultGitignoreEntries;
 
+        /// <summary>
+        /// Controls whether generated csproj files receive analyzer entries from the project settings asset.
+        /// </summary>
+        [SerializeField]
+        private bool m_AnalyzerInjectionEnabled = false;
+
+        /// <summary>
+        /// Project-provided analyzer DLL paths, one per line. Defaults empty so the public package has no project-specific analyzer dependency.
+        /// </summary>
+        [SerializeField]
+        private string m_AnalyzerPaths = string.Empty;
+
+        /// <summary>
+        /// Controls whether Unity editor source generator DLLs are added beside project-provided analyzers.
+        /// </summary>
+        [SerializeField]
+        private bool m_UnitySourceGeneratorInjectionEnabled = false;
+
         public string SourceFileExtensionsText
         {
             get { return m_SourceFileExtensions; }
@@ -52,6 +70,24 @@ namespace Unity.Zed.Editor
         {
             get { return m_GitignoreEntries; }
             set { m_GitignoreEntries = value ?? string.Empty; }
+        }
+
+        public bool AnalyzerInjectionEnabled
+        {
+            get { return m_AnalyzerInjectionEnabled; }
+            set { m_AnalyzerInjectionEnabled = value; }
+        }
+
+        public string AnalyzerPathsText
+        {
+            get { return m_AnalyzerPaths; }
+            set { m_AnalyzerPaths = value ?? string.Empty; }
+        }
+
+        public bool UnitySourceGeneratorInjectionEnabled
+        {
+            get { return m_UnitySourceGeneratorInjectionEnabled; }
+            set { m_UnitySourceGeneratorInjectionEnabled = value; }
         }
 
         public bool ShouldOpenPath(string path)
@@ -73,6 +109,11 @@ namespace Unity.Zed.Editor
             get { return ParseLines(m_GitignoreEntries); }
         }
 
+        public IEnumerable<string> AnalyzerPaths
+        {
+            get { return ParseLines(m_AnalyzerPaths); }
+        }
+
         public void ResetSourceFileExtensions()
         {
             m_SourceFileExtensions = DefaultSourceFileExtensions;
@@ -81,6 +122,11 @@ namespace Unity.Zed.Editor
         public void ResetGitignoreEntries()
         {
             m_GitignoreEntries = DefaultGitignoreEntries;
+        }
+
+        public void ResetAnalyzerPaths()
+        {
+            m_AnalyzerPaths = string.Empty;
         }
 
         public void SaveSettings()

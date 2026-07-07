@@ -45,6 +45,23 @@ namespace Unity.Zed.Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space();
+            EditorGUILayout.LabelField("C# Project Analyzers", EditorStyles.boldLabel);
+            var analyzerInjectionEnabled = EditorGUILayout.Toggle("Inject Analyzer Paths", settings.AnalyzerInjectionEnabled);
+            var unitySourceGeneratorInjectionEnabled = EditorGUILayout.Toggle("Inject Unity Source Generators", settings.UnitySourceGeneratorInjectionEnabled);
+            EditorGUILayout.LabelField("Analyzer DLL paths to add to generated csproj files. Use one absolute or project-relative path per line.", EditorStyles.miniLabel);
+            var analyzerPaths = EditorGUILayout.TextArea(settings.AnalyzerPathsText, GUILayout.MinHeight(64));
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Clear Analyzer Paths", GUILayout.Width(152)))
+            {
+                settings.ResetAnalyzerPaths();
+                settings.SaveSettings();
+                GUIUtility.ExitGUI();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space();
             EditorGUILayout.LabelField("Zed Project Panel", EditorStyles.boldLabel);
             var hideGitignore = EditorGUILayout.Toggle("Hide .gitignore Matches", settings.ProjectPanelHidesGitignoredFiles);
             EditorGUILayout.LabelField("Gitignore entries used to hide generated Unity folders from Zed.", EditorStyles.miniLabel);
@@ -86,6 +103,9 @@ namespace Unity.Zed.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 settings.SourceFileExtensionsText = sourceExtensions;
+                settings.AnalyzerInjectionEnabled = analyzerInjectionEnabled;
+                settings.UnitySourceGeneratorInjectionEnabled = unitySourceGeneratorInjectionEnabled;
+                settings.AnalyzerPathsText = analyzerPaths;
                 settings.ProjectPanelHidesGitignoredFiles = hideGitignore;
                 settings.GitignoreEntriesText = gitignoreEntries;
                 settings.SaveSettings();

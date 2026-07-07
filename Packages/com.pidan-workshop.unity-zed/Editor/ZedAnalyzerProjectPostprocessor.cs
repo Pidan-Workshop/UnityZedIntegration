@@ -9,17 +9,12 @@ using UnityEngine;
 namespace Unity.Zed.Editor
 {
     /// <summary>
-    /// Adds Unity and project Roslyn analyzers to generated C# project files so non-Unity IDE language servers can see source generators.
+    /// Adds project-configured Roslyn analyzer entries to generated C# project files for non-Unity IDE language servers.
     /// </summary>
     internal sealed class ZedAnalyzerProjectPostprocessor : AssetPostprocessor
     {
         /// <summary>
-        /// SmartShark's analyzer is stored in a package path instead of a Unity editor install path, so it must be resolved from the project root.
-        /// </summary>
-        private const string SmartSharkAnalyzerRelativePath = "Packages/SmartShark.Core/Analyzers/SmartShark.Generator.dll";
-
-        /// <summary>
-        /// Unity ships these source generators next to the editor executable; Zed needs them in csproj metadata for design-time generated code.
+        /// Unity editor source generators are optional because public package defaults must not inject analyzer dependencies.
         /// </summary>
         private static readonly string[] UnitySourceGeneratorRelativePaths =
         {
@@ -35,7 +30,11 @@ namespace Unity.Zed.Editor
             if (string.IsNullOrEmpty(content))
                 return content;
 
-            var analyzers = ResolveAnalyzerPaths();
+            var settings = ZedProjectSettings.instance;
+            if (!settings.AnalyzerInjectionEnabled && !settings.UnitySourceGeneratorInjectionEnabled)
+                return content;
+
+            var analyzers = ResolveAnalyzerPaths(settings);
             if (analyzers.Count == 0)
                 return content;
 
@@ -47,31 +46,56 @@ namespace Unity.Zed.Editor
             return InsertAnalyzerBlock(content, analyzerBlock, newline);
         }
 
-        private static List<string> ResolveAnalyzerPaths()
+        private static List<string> ResolveAnalyzerPaths(ZedProjectSettings settings)
         {
             var analyzers = new List<string>();
-
             string projectRoot = Directory.GetParent(Application.dataPath)?.FullName ?? Directory.GetCurrentDirectory();
-            AddIfFileExists(analyzers, Path.Combine(projectRoot, SmartSharkAnalyzerRelativePath));
 
-            string editorRoot = Path.GetDirectoryName(EditorApplication.applicationPath);
-            if (!string.IsNullOrEmpty(editorRoot))
+            if (settings.AnalyzerInjectionEnabled)
             {
-                foreach (string relativePath in UnitySourceGeneratorRelativePaths)
-                    AddIfFileExists(analyzers, Path.Combine(editorRoot, relativePath));
+                foreach (string configuredPath in settings.AnalyzerPaths)
+                    AddConfiguredAnalyzerPath(analyzers, projectRoot, configuredPath);
+            }
+
+            if (settings.UnitySourceGeneratorInjectionEnabled)
+            {
+                string editorRoot = Path.GetDirectoryName(EditorApplication.applicationPath);
+                if (!string.IsNullOrEmpty(editorRoot))
+                {
+                    foreach (string relativePath in UnitySourceGeneratorRelativePaths)
+                        AddIfFileExists(analyzers, Path.Combine(editorRoot, relativePath), relativePath);
+                }
             }
 
             return analyzers;
         }
 
-        private static void AddIfFileExists(ICollection<string> analyzers, string path)
+        private static void AddConfiguredAnalyzerPath(ICollection<string> analyzers, string projectRoot, string configuredPath)
+        {
+            if (string.IsNullOrWhiteSpace(configuredPath))
+                return;
+
+            string expandedPath = Environment.ExpandEnvironmentVariables(configuredPath.Trim());
+            string absolutePath = Path.IsPathRooted(expandedPath)
+                ? expandedPath
+                : Path.Combine(projectRoot, expandedPath);
+
+            AddIfFileExists(analyzers, absolutePath, configuredPath);
+        }
+
+        private static void AddIfFileExists(ICollection<string> analyzers, string path, string displayPath)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return;
 
             string normalized = Path.GetFullPath(path).Replace('\\', '/');
             if (File.Exists(normalized))
+            {
                 analyzers.Add(normalized);
+                return;
+            }
+
+            Debug.LogWarning("[ZedEditor] Analyzer path does not exist and will not be added to generated csproj files: " + displayPath);
         }
 
         private static string BuildAnalyzerBlock(string content, IEnumerable<string> analyzers, string newline)
