@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -9,6 +11,16 @@ namespace Unity.Zed.Editor
 {
     internal static class ZedProcess
     {
+        private static readonly StringComparer ProjectPathComparer =
+#if UNITY_EDITOR_WIN || UNITY_EDITOR_OSX
+            StringComparer.OrdinalIgnoreCase;
+#else
+            StringComparer.Ordinal;
+#endif
+
+        private static readonly Dictionary<string, Process> s_SmartWorkspaceWatchers = new Dictionary<string, Process>(ProjectPathComparer);
+        private static readonly object s_SmartWorkspaceLock = new object();
+
         public static bool Launch(string projectDirectory, string filePath, int line, int column)
         {
             var zedPath = ZedDiscovery.FindZed();
@@ -24,12 +36,17 @@ namespace Unity.Zed.Editor
 
             try
             {
-                var argsBuilder = new StringBuilder();
+                var windowBehavior = ZedProjectSettings.instance.WindowBehavior;
+                var normalizedProjectDirectory = NormalizeProjectDirectory(projectDirectory);
+                var smartProjectKnownOpen = IsSmartProjectKnownOpen(normalizedProjectDirectory);
+                var args = BuildArguments(projectDirectory, filePath, line, column, windowBehavior, smartProjectKnownOpen);
 
-                AppendArgument(argsBuilder, projectDirectory);
-                AppendArgument(argsBuilder, BuildFileArgument(projectDirectory, filePath, line, column));
+                var process = StartZed(zedPath, projectDirectory, args);
+                if (windowBehavior == ZedWindowBehavior.Smart && !smartProjectKnownOpen)
+                    TrackSmartWorkspaceWatcher(normalizedProjectDirectory, process);
+                else
+                    process.Dispose();
 
-                StartZed(zedPath, projectDirectory, argsBuilder.ToString());
                 return true;
             }
             catch (System.Exception ex)
@@ -40,6 +57,45 @@ namespace Unity.Zed.Editor
                     $"Failed to start Zed at path '{zedPath}'. Please check the path in Edit > Project Settings > Zed Editor.\n\nError: {ex.Message}",
                     "OK");
                 return false;
+            }
+        }
+
+        internal static string BuildArguments(
+            string projectDirectory,
+            string filePath,
+            int line,
+            int column,
+            ZedWindowBehavior windowBehavior,
+            bool smartProjectKnownOpen)
+        {
+            var argsBuilder = new StringBuilder();
+
+            AppendWindowBehaviorArgument(argsBuilder, windowBehavior, smartProjectKnownOpen);
+            AppendArgument(argsBuilder, projectDirectory);
+            AppendArgument(argsBuilder, BuildFileArgument(projectDirectory, filePath, line, column));
+
+            return argsBuilder.ToString();
+        }
+
+        private static void AppendWindowBehaviorArgument(StringBuilder builder, ZedWindowBehavior windowBehavior, bool smartProjectKnownOpen)
+        {
+            switch (windowBehavior)
+            {
+                case ZedWindowBehavior.Smart:
+                    if (!smartProjectKnownOpen)
+                    {
+                        AppendArgument(builder, "--new");
+                        AppendArgument(builder, "--wait");
+                    }
+                    break;
+
+                case ZedWindowBehavior.ReuseCurrentWindow:
+                    AppendArgument(builder, "--existing");
+                    break;
+
+                case ZedWindowBehavior.AlwaysNewWorkspace:
+                    AppendArgument(builder, "--new");
+                    break;
             }
         }
 
@@ -109,7 +165,7 @@ namespace Unity.Zed.Editor
             return quoted.ToString();
         }
 
-        private static void StartZed(string zedPath, string workingDir, string args)
+        private static Process StartZed(string zedPath, string workingDir, string args)
         {
             Debug.Log($"[ZedEditor] {zedPath} {args}");
             var psi = new ProcessStartInfo
@@ -121,8 +177,73 @@ namespace Unity.Zed.Editor
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
-            using var process = new Process { StartInfo = psi };
+            var process = new Process { StartInfo = psi };
             process.Start();
+            return process;
+        }
+
+        private static string NormalizeProjectDirectory(string projectDirectory)
+        {
+            if (string.IsNullOrEmpty(projectDirectory))
+                return null;
+
+            return Path.GetFullPath(projectDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+
+        private static bool IsSmartProjectKnownOpen(string normalizedProjectDirectory)
+        {
+            if (string.IsNullOrEmpty(normalizedProjectDirectory))
+                return false;
+
+            lock (s_SmartWorkspaceLock)
+            {
+                if (!s_SmartWorkspaceWatchers.TryGetValue(normalizedProjectDirectory, out var watcher))
+                    return false;
+
+                if (!watcher.HasExited)
+                    return true;
+
+                RemoveSmartWorkspaceWatcher(normalizedProjectDirectory, watcher);
+                return false;
+            }
+        }
+
+        private static void TrackSmartWorkspaceWatcher(string normalizedProjectDirectory, Process process)
+        {
+            if (string.IsNullOrEmpty(normalizedProjectDirectory))
+            {
+                process.Dispose();
+                return;
+            }
+
+            lock (s_SmartWorkspaceLock)
+            {
+                if (s_SmartWorkspaceWatchers.TryGetValue(normalizedProjectDirectory, out var existingWatcher))
+                    RemoveSmartWorkspaceWatcher(normalizedProjectDirectory, existingWatcher);
+
+                process.EnableRaisingEvents = true;
+                process.Exited += (_, _) =>
+                {
+                    lock (s_SmartWorkspaceLock)
+                    {
+                        RemoveSmartWorkspaceWatcher(normalizedProjectDirectory, process);
+                    }
+                };
+                s_SmartWorkspaceWatchers[normalizedProjectDirectory] = process;
+                if (process.HasExited)
+                    RemoveSmartWorkspaceWatcher(normalizedProjectDirectory, process);
+            }
+        }
+
+        private static void RemoveSmartWorkspaceWatcher(string normalizedProjectDirectory, Process watcher)
+        {
+            if (s_SmartWorkspaceWatchers.TryGetValue(normalizedProjectDirectory, out var currentWatcher) &&
+                ReferenceEquals(currentWatcher, watcher))
+            {
+                s_SmartWorkspaceWatchers.Remove(normalizedProjectDirectory);
+            }
+
+            watcher.Dispose();
         }
 
         private static string GetRelativePath(string basePath, string fullPath)

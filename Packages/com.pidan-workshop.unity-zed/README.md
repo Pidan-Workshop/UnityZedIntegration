@@ -8,7 +8,7 @@ This package registers Zed as an external script editor in Unity, generates C# p
 
 - Registers **Zed** in `Edit > Preferences > External Tools > External Script Editor`
 - Opens the current Unity project folder as the Zed workspace
-- Reuses an already-open Zed workspace when Zed can match the project folder
+- Configures whether Unity opens Zed smartly, in the current window, or in a new workspace
 - Opens C# and shader source files at the requested line and column from Unity Console, Project window, and double-clicks
 - Reuses Unity's Visual Studio Editor project generator and exposes the same `.csproj` generation toggles
 - Generates and syncs `.sln` / `.csproj` files through `com.unity.ide.visualstudio`
@@ -69,7 +69,17 @@ Use Unity normally:
 - Click a C# stack trace entry in the Console
 - Use `Assets > Open C# Project`
 
-The package launches Zed with the Unity project folder and the selected source file path. If the workspace is already open, Zed should focus or reuse that workspace; otherwise, it opens the project folder.
+The package launches Zed with the Unity project folder and the selected source file path. Window behavior is configured in:
+
+```text
+Edit > Project Settings > Zed Editor
+```
+
+Available behaviors:
+
+- **Smart**: opens a new Zed workspace for the current project, watches it until that workspace window closes, then lets later opens reuse the project workspace while it is alive.
+- **Reuse Current Window**: asks Zed to open Unity requests in an existing Zed window.
+- **Always New Workspace**: asks Zed to create a new workspace for every Unity open request.
 
 Supported source file extensions are configured in:
 
@@ -162,6 +172,7 @@ Available options:
 
 - **Zed Executable Path**: manually set the Zed executable if auto-detection fails
 - **Detect Again**: clear the cached executable path and run detection again
+- **Window Behavior**: configure whether Unity opens Zed smartly, reuses the current window, or always creates a new workspace
 - **Open in Zed**: configure source file extensions that Unity should route to Zed
 - **C# Project Analyzers**: configure analyzer DLL paths to inject into generated `.csproj` files
 - **Zed Project Panel**: create `.zed/settings.json` and `.gitignore` entries for hiding generated Unity folders

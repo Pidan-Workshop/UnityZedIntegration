@@ -15,7 +15,7 @@ namespace Unity.Zed.Editor
             {
                 label = "Zed Editor",
                 guiHandler = OnGUI,
-                keywords = new HashSet<string> { "zed", "editor", "shader", "ignore", "gitignore" }
+                keywords = new HashSet<string> { "zed", "editor", "shader", "ignore", "gitignore", "window", "workspace" }
             };
         }
 
@@ -31,6 +31,10 @@ namespace Unity.Zed.Editor
             EditorGUI.BeginChangeCheck();
 
             EditorGUILayout.LabelField("Open In Zed", EditorStyles.boldLabel);
+            var windowBehavior = (ZedWindowBehavior)EditorGUILayout.EnumPopup("Window Behavior", settings.WindowBehavior);
+            EditorGUILayout.LabelField("Smart opens a project workspace, reuses it while alive, and resets after the Zed window closes.", EditorStyles.miniLabel);
+            EditorGUILayout.Space();
+
             EditorGUILayout.LabelField("File extensions that Unity should route to Zed.", EditorStyles.miniLabel);
             var sourceExtensions = EditorGUILayout.TextArea(settings.SourceFileExtensionsText, GUILayout.MinHeight(86));
 
@@ -103,6 +107,7 @@ namespace Unity.Zed.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 settings.SourceFileExtensionsText = sourceExtensions;
+                settings.WindowBehavior = windowBehavior;
                 settings.AnalyzerInjectionEnabled = analyzerInjectionEnabled;
                 settings.UnitySourceGeneratorInjectionEnabled = unitySourceGeneratorInjectionEnabled;
                 settings.AnalyzerPathsText = analyzerPaths;

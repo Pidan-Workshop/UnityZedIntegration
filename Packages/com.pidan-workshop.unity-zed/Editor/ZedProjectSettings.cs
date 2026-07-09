@@ -7,6 +7,18 @@ using UnityEngine;
 
 namespace Unity.Zed.Editor
 {
+    internal enum ZedWindowBehavior
+    {
+        [InspectorName("Smart")]
+        Smart = 0,
+
+        [InspectorName("Reuse Current Window")]
+        ReuseCurrentWindow = 1,
+
+        [InspectorName("Always New Workspace")]
+        AlwaysNewWorkspace = 2
+    }
+
     [FilePath("ProjectSettings/ZedEditorSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal class ZedProjectSettings : ScriptableSingleton<ZedProjectSettings>
     {
@@ -29,6 +41,9 @@ namespace Unity.Zed.Editor
 
         [SerializeField]
         private string m_SourceFileExtensions = DefaultSourceFileExtensions;
+
+        [SerializeField]
+        private ZedWindowBehavior m_WindowBehavior = ZedWindowBehavior.Smart;
 
         [SerializeField]
         private bool m_ProjectPanelHidesGitignoredFiles = true;
@@ -64,6 +79,12 @@ namespace Unity.Zed.Editor
         {
             get { return m_ProjectPanelHidesGitignoredFiles; }
             set { m_ProjectPanelHidesGitignoredFiles = value; }
+        }
+
+        public ZedWindowBehavior WindowBehavior
+        {
+            get { return m_WindowBehavior; }
+            set { m_WindowBehavior = value; }
         }
 
         public string GitignoreEntriesText
